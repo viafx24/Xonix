@@ -3,6 +3,18 @@
 // on gagne si on réduit la proportion dans laquelle les ennemis évoluent au fur et à mesure des niveaux
 // si j'ai bien compris. Il n'y a ici qu'un seul niveau.
 
+
+// Le jeux précédent m'avait fatigué car plus dur. Celui-ci est plus sympathique, me redonne gôut d'aller au bout des 16 jeux.
+// je vois que plus je fais de jeux, plus la lecture du code est aisé et en général, je bloque que sur les aspects de logique de jeu
+// qui necessite de "voir ce qui se passe" en clair.
+// ca vaut le coup d'aller au bout des 16 car alors j'aurais la version "sans game engine et découpage de code" et je pourrais comparer avec les
+// version avec "game engine diy" c'est à dire avec classe et séparation plus claire entre logique de jeu, affichage, bref, plus poo.
+
+// l'avantage de ces petits jeux, c'est qu'ils tiennent tous en une seule fonction principale sans classe, à la rigueur une structure.
+// mais on voit que si il fallait mettre des niveaux ou tout simplement avoir une logique un poil plus complexe et le code deviendrait super long avec des aller-retours
+// pesants.
+
+
 #include <SFML/Graphics.hpp>
 #include <time.h>
 using namespace sf;
@@ -39,6 +51,14 @@ struct Enemy
 
 // fonction qui permet de génerer un mur à l'interieur de ce qui a été cerclé
 // par encore bien claire, appel de récursivité. On ferra du debug dessus.
+
+// Ca y est j'ai pigé: il faut regarder si un ennemi est emprisonné dans la boite
+// si oui, toutes les cases passent à -1 (pour les différencier de celles vont passer à zero qui deviendront egal à 1
+// le point c'est que au fur et à mesure du jeu, les ennemis peuvent être separé dans des espaces différents. il faut donc
+// verifier pour chaque ennemi si dans une boite donné, il s'y trouve de tel manière à ne pas passer cette zone en mur.
+// l'appel recursif, sans que je rentre dans les détail du code permettra j'imagine pour au moins une des quatres lignes, à remplir de 
+// de -1 l'ensemble de la boite contenant l'ennemi.
+
 void drop(int y,int x)
 {
   if (grid[y][x]==0) grid[y][x]=-1;
@@ -54,6 +74,9 @@ int main()
 
     RenderWindow window(VideoMode(N*ts, M*ts), "Xonix Game!");
     window.setFramerateLimit(60);
+
+    sf::Vector2i Position(1, 1);
+    window.setPosition(Position);
 
     Texture t1,t2,t3;
     t1.loadFromFile("images/tiles.png");
@@ -75,7 +98,7 @@ int main()
 
     bool Game=true;
     int x=0, y=0, dx=0, dy=0;
-    float timer=0, delay=0.07; 
+    float timer=0, delay=0.07, timer2=0; 
     Clock clock;
 
     for (int i=0;i<M;i++)
@@ -88,6 +111,7 @@ int main()
         float time = clock.getElapsedTime().asSeconds();// regarde le temps passé
         clock.restart();// redemarre le time a chaque itération
         timer+=time;// incrémente le timer.
+        timer2 += time;
 
         Event e;
         while (window.pollEvent(e))
@@ -139,10 +163,16 @@ int main()
           {
            dx=dy=0;
 
-           for (int i=0;i<enemyCount;i++)
-                drop(a[i].y/ts, a[i].x/ts);// comprend pas encore
 
-           // comprends pas encore
+           // on regarde l'ensemble des espaces clots contenant des ennemis et on les remplis de -1 si ils contiennent
+           // au moins un ennemi
+
+           for (int i=0;i<enemyCount;i++)
+                drop(a[i].y/ts, a[i].x/ts);
+
+           // on passe alors en revu toute les cases: celles qui sont à -1 repasse à zero (vide)
+           // celles qui sont à zero passe à 1: elles ne contenaient pas d'ennemi et donc deviennent des murs.
+
            for (int i=0;i<M;i++)
              for (int j=0;j<N;j++)
               if (grid[i][j]==-1) grid[i][j]=0;
